@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14.11
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: "psql -U postgres -l"
+      interval: 1s
+      timeout: 1s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - net_internal
+      - net_external
+
+  tbls:
+    image: ghcr.io/k1low/tbls:latest
+    working_dir: /mnt
+    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docs:/mnt
+    entrypoint: tbls doc --rm-dist postgres://postgres:postgres@db:5432/postgres?sslmode=disable
+    networks:
+      - net_internal
+
+volumes:
+  data:
+
+networks:
+  net_internal:
+    name: net_internal
+    internal: true
+  net_external:
+    name: net_external
